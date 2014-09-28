@@ -1,11 +1,11 @@
 <?php
 /*
-Plugin Name: Thumbs Rating
-Plugin URI: http://wordpress.org/plugins/thumbs-rating/
-Description: Add thumbs up/down rating to your content.
+Plugin Name: Thumbs Rating for medONLINE
+Plugin URI: https://github.com/medizinmedien/thumbs-rating
+Description: Thumbs Rating mit den Daumen von Font Awesome ausgestattet sowie für unseren Fall korrigiertem (funktionierendem) AJAX.
 Author: Ricard Torres
-Version: 2.2
-Author URI: http://php.quicoto.com/
+Version: 2.2.1
+Author URI: http://wordpress.org/plugins/thumbs-rating/
 */
 
 if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly
@@ -42,15 +42,25 @@ endif;
 
 if  ( ! function_exists( 'thumbs_rating_scripts' ) ):
 
-	function thumbs_rating_scripts()
-	{
+	function thumbs_rating_scripts() {
+
+	$admin_ajax_url = thumbs_rating_ssl_correct( admin_url( 'admin-ajax.php' ) );
+
 		wp_enqueue_script('thumbs_rating_scripts', thumbs_rating_url . '/js/general.js', array('jquery'), '4.0.1');
-		wp_localize_script( 'thumbs_rating_scripts', 'thumbs_rating_ajax', array( 'ajax_url' => admin_url( 'admin-ajax.php' ), 'nonce' => wp_create_nonce( 'thumbs-rating-nonce' ) ) );
+		wp_localize_script( 'thumbs_rating_scripts', 'thumbs_rating_ajax', array( 'ajax_url' => $admin_ajax_url, 'nonce' => wp_create_nonce( 'thumbs-rating-nonce' ) ) );
 	}
 	add_action('wp_enqueue_scripts', 'thumbs_rating_scripts');
 
 endif;
 
+function thumbs_rating_ssl_correct( $url ) {
+	if( (isset( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] == 'on') || $_SERVER['SERVER_PORT'] == '443' )
+		return str_replace( 'http:', 'https:', $url );
+	elseif( $_SERVER['SERVER_PORT'] == '80' )
+		return str_replace( 'https:', 'http:', $url );
+
+	return $url;
+}
 
 /*-----------------------------------------------------------------------------------*/
 /* Encue the Styles for the Thumbs up/down */
@@ -146,6 +156,8 @@ if  ( ! function_exists( 'thumbs_rating_add_vote_callback' ) ):
 		update_post_meta($post_ID, $meta_name, $thumbs_rating_count);
 
 		$results = thumbs_rating_getlink($post_ID, $type_of_vote);
+		if( function_exists( 'cc_medonline_replacements_for_thumbs_rating_output' ) )
+			$results = cc_medonline_replacements_for_thumbs_rating_output( $results );
 
 		die($results);
 	}
